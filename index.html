@@ -1061,37 +1061,43 @@ const GAS_URL = localStorage.getItem('rbs_gas_url') || 'https://script.google.co
 // ── Universal API caller ──────────────────────────────────────────────
 // GET actions (read): getIssues, getSummary, getLog
 // POST actions (write): addIssue, updateField, deleteIssue
-async function apiFetch(payload) {
-  const url = localStorage.getItem('rbs_gas_url') || GAS_URL;
-  if (!url) {
-    showSyncBar('⚠️ ยังไม่ได้ตั้งค่า Apps Script URL');
-    const bar = document.getElementById('sync-bar');
-    if (bar) { bar.className = 'sync-bar err'; bar.style.display = 'flex'; }
-    throw new Error('GAS_URL not set');
-  }
-  const readActions = ['getIssues','getSummary','getLog'];
-  if (readActions.includes(payload.action)) {
-    // GET — Apps Script redirects to googleusercontent.com which has CORS headers
-    const res = await fetch(url + '?action=' + payload.action, {
-      method: 'GET',
-      redirect: 'follow',
-    });
-    const text = await res.text();
-    // Strip JSONP wrapper if present: callback(Ellipsis) -> {...}
-    const clean = text.replace(/^[\w$]+\(/, '').replace(/\);?$/, '').trim();
-    return JSON.parse(clean);
-  } else {
-    // POST — send as text/plain to avoid preflight
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(payload),
-      redirect: 'follow',
-    });
-    const text = await res.text();
-    const clean = text.replace(/^[\w$]+\(/, '').replace(/\);?$/, '').trim();
-    return JSON.parse(clean);
-  }
+// JSONP — ไม่ถูกบล็อกโดย CORS เพราะใช้ <script> tag แทน fetch
+function apiFetch(payload) {
+  return new Promise((resolve, reject) => {
+    const url = localStorage.getItem('rbs_gas_url') || GAS_URL;
+    if (!url) {
+      reject(new Error('GAS_URL not set'));
+      return;
+    }
+    const cbName = '__cb' + Date.now();
+    const script  = document.createElement('script');
+    const timer   = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timeout'));
+    }, 20000);
+
+    window[cbName] = function(data) {
+      cleanup();
+      resolve(data);
+    };
+
+    function cleanup() {
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) document.head.removeChild(script);
+    }
+
+    const readActions = ['getIssues','getSummary','getLog'];
+    let src;
+    if (readActions.includes(payload.action)) {
+      src = url + '?action=' + encodeURIComponent(payload.action) + '&callback=' + cbName;
+    } else {
+      src = url + '?callback=' + cbName + '&payload=' + encodeURIComponent(JSON.stringify(payload));
+    }
+    script.src = src;
+    script.onerror = function() { cleanup(); reject(new Error('Script load error')); };
+    document.head.appendChild(script);
+  });
 }
 
 // ── google.script.run shim for standalone HTML ──────────────────────
