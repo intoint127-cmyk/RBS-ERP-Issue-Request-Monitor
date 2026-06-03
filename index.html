@@ -1089,44 +1089,29 @@ async function apiFetch(payload) {
   }
 }
 
-// ── Shim: google.script.run compatibility ────────────────────────────
-// แปลง google.script.run.withSuccessHandler(fn).methodName(args)
-// เป็น apiFetch call
-const google = {
-  script: {
-    run: new Proxy({}, {
-      get(_, method) {
-        let _success = r => r, _fail = e => { console.error(e); };
-        const runner = {
-          withSuccessHandler(fn) { _success = fn; return runner; },
-          withFailureHandler(fn) { _fail = fn; return runner; },
-        };
-        // map method names to action payloads
-        const actionMap = {
-          getIssues:  () => ({ action: 'getIssues' }),
-          getSummary: () => ({ action: 'getSummary' }),
-          getLog:     () => ({ action: 'getLog' }),
-          addIssue:   (d, editor) => ({ action: 'addIssue', data: d, editor }),
-          updateField:(issueId, field, newVal, editor, note) =>
-                        ({ action: 'updateField', issueId, field, newVal, editor, note: note||'' }),
-          deleteIssue:(issueId, editor) => ({ action: 'deleteIssue', issueId, editor }),
-        };
-        return new Proxy(runner, {
-          get(t, prop) {
-            if (prop in t) return t[prop];
-            if (prop in actionMap) {
-              return (...args) => {
-                apiFetch(actionMap[prop](...args))
-                  .then(_success).catch(_fail);
-              };
-            }
-            return (...args) => { console.warn('Unknown GAS method:', prop); };
-          }
-        });
-      }
-    })
+// ── google.script.run shim for standalone HTML ──────────────────────
+const google = { script: { run: makeRunner() } };
+
+function makeRunner() {
+  let _ok = r => r, _fail = e => console.error(e);
+  const r = {
+    withSuccessHandler(fn) { _ok = fn; return r; },
+    withFailureHandler(fn) { _fail = fn; return r; },
+    getIssues()                          { _call('getIssues'); },
+    getSummary()                         { _call('getSummary'); },
+    getLog()                             { _call('getLog'); },
+    addIssue(d, editor)                  { _call('addIssue', {data:d, editor}); },
+    updateField(id,field,val,editor,note){ _call('updateField', {issueId:id,field,newVal:val,editor,note:note||''}); },
+    deleteIssue(id, editor)              { _call('deleteIssue', {issueId:id, editor}); },
+  };
+  function _call(action, extra) {
+    // capture current handlers then reset for next call
+    const ok = _ok, fail = _fail;
+    _ok = r => r; _fail = e => console.error(e);
+    apiFetch(Object.assign({action}, extra)).then(ok).catch(fail);
   }
-};
+  return r;
+}
 </script>
 </body>
 </html>
