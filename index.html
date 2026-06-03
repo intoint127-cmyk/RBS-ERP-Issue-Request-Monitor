@@ -1061,27 +1061,6 @@ const GAS_URL = localStorage.getItem('rbs_gas_url') || 'https://script.google.co
 // ── Universal API caller ──────────────────────────────────────────────
 // GET actions (read): getIssues, getSummary, getLog
 // POST actions (write): addIssue, updateField, deleteIssue
-// ── JSONP helper (bypasses CORS) ─────────────────────────────────────
-function jsonp(url, params) {
-  return new Promise((resolve, reject) => {
-    const cb = '__cb_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    const script = document.createElement('script');
-    const timeout = setTimeout(() => {
-      cleanup(); reject(new Error('JSONP timeout'));
-    }, 15000);
-    window[cb] = (data) => { cleanup(); resolve(data); };
-    function cleanup() {
-      clearTimeout(timeout);
-      delete window[cb];
-      if (script.parentNode) script.parentNode.removeChild(script);
-    }
-    const p = new URLSearchParams(Object.assign({callback: cb}, params));
-    script.src = url + '?' + p;
-    script.onerror = () => { cleanup(); reject(new Error('Script load failed')); };
-    document.head.appendChild(script);
-  });
-}
-
 async function apiFetch(payload) {
   const url = localStorage.getItem('rbs_gas_url') || GAS_URL;
   if (!url) {
@@ -1092,12 +1071,26 @@ async function apiFetch(payload) {
   }
   const readActions = ['getIssues','getSummary','getLog'];
   if (readActions.includes(payload.action)) {
-    // JSONP for GET (bypasses CORS completely)
-    return await jsonp(url, { action: payload.action });
+    // GET — Apps Script redirects to googleusercontent.com which has CORS headers
+    const res = await fetch(url + '?action=' + payload.action, {
+      method: 'GET',
+      redirect: 'follow',
+    });
+    const text = await res.text();
+    // Strip JSONP wrapper if present: callback(Ellipsis) -> {...}
+    const clean = text.replace(/^[\w$]+\(/, '').replace(/\);?$/, '').trim();
+    return JSON.parse(clean);
   } else {
-    // POST via no-cors mode + encode as query param fallback
-    // Use JSONP with encoded payload for write operations too
-    return await jsonp(url, { action: payload.action, payload: JSON.stringify(payload) });
+    // POST — send as text/plain to avoid preflight
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload),
+      redirect: 'follow',
+    });
+    const text = await res.text();
+    const clean = text.replace(/^[\w$]+\(/, '').replace(/\);?$/, '').trim();
+    return JSON.parse(clean);
   }
 }
 
