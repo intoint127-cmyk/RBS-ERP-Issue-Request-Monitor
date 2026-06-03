@@ -466,7 +466,7 @@ window.onload = function() {
   document.getElementById('cfg-username').value = EDITOR;
   const savedUrl = localStorage.getItem('rbs_gas_url') || '';
   const urlEl = document.getElementById('cfg-gas-url');
-  if (urlEl) urlEl.value = savedUrl || 'https://script.google.com/macros/s/AKfycbwH9GdvltvszkMqFYMnZT3h6lNrlG7Bl9nHvW9ljQ4zDUyFwTrETQwFpPTyUNO_LxH5OA/exec';
+  if (urlEl) urlEl.value = savedUrl || 'https://script.google.com/macros/s/AKfycbzfQR2HRZSRKPCLHQaznIe7rjbSUmIh3FPv7Ii6bN1bGYfS5WZlGpjsK0xImny2XeuPUw/exec';
   // URL pre-configured
   document.getElementById('user-name-display').textContent = EDITOR;
   document.getElementById('user-avatar').textContent = EDITOR.charAt(0).toUpperCase();
@@ -1056,7 +1056,7 @@ function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 // ═══════════════════════════════════════════════════════════════════════
 // CONFIG — ใส่ Apps Script URL ของคุณที่นี่
 // ═══════════════════════════════════════════════════════════════════════
-const GAS_URL = localStorage.getItem('rbs_gas_url') || 'https://script.google.com/macros/s/AKfycbwH9GdvltvszkMqFYMnZT3h6lNrlG7Bl9nHvW9ljQ4zDUyFwTrETQwFpPTyUNO_LxH5OA/exec';
+const GAS_URL = localStorage.getItem('rbs_gas_url') || 'https://script.google.com/macros/s/AKfycbzfQR2HRZSRKPCLHQaznIe7rjbSUmIh3FPv7Ii6bN1bGYfS5WZlGpjsK0xImny2XeuPUw/exec';
 
 // ── Universal API caller ──────────────────────────────────────────────
 // GET actions (read): getIssues, getSummary, getLog
