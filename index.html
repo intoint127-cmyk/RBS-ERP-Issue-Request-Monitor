@@ -145,15 +145,72 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
 .log-filters{display:flex;gap:6px;margin-bottom:.75rem;flex-wrap:wrap}
 
 /* ── Dashboard ── */
-.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem;margin-bottom:1rem}
-.dash-card{background:#fff;border-radius:10px;border:.5px solid #e8e7de;padding:16px}
-.dash-card-title{font-size:12px;font-weight:500;color:#888780;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-.dept-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:.5px solid #f1efe8}
-.dept-row:last-child{border-bottom:none}
-.dept-name{font-size:12px;flex:1}
-.dept-bar-wrap{flex:2;background:#f1efe8;border-radius:4px;height:6px;overflow:hidden}
-.dept-bar{height:100%;border-radius:4px;background:#185FA5;transition:width .5s}
-.dept-count{font-size:11px;font-weight:500;color:#185FA5;min-width:24px;text-align:right}
+/* ── Dashboard ── */
+@keyframes countUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes barIn{from{width:0!important}to{}}
+@keyframes fadeSlide{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+@keyframes ringFill{from{stroke-dashoffset:var(--dash-total)}to{stroke-dashoffset:var(--dash-offset)}}
+.dash-wrap{display:flex;flex-direction:column;gap:14px}
+.dash-row{display:grid;gap:14px}
+.dash-row-4{grid-template-columns:repeat(4,1fr)}
+.dash-row-3{grid-template-columns:2fr 1.4fr 1fr}
+.dash-row-2{grid-template-columns:1fr 1fr}
+@media(max-width:900px){.dash-row-4{grid-template-columns:repeat(2,1fr)}.dash-row-3,.dash-row-2{grid-template-columns:1fr}}
+.dc{background:var(--color-background-primary);border-radius:12px;border:.5px solid var(--color-border-tertiary);padding:16px 18px;overflow:hidden;position:relative}
+.dc-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:12px;display:flex;align-items:center;gap:5px;text-transform:uppercase;letter-spacing:.06em}
+.dc-title i{font-size:13px}
+/* Stat cards */
+.stat-num{font-size:32px;font-weight:600;line-height:1;margin-bottom:4px;animation:countUp .4s ease both}
+.stat-sub{font-size:11px;color:var(--color-text-secondary)}
+.stat-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;margin-top:6px}
+.dc-accent{position:absolute;top:0;right:0;width:4px;height:100%;border-radius:0 12px 12px 0}
+/* Donut chart */
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:7px}
+.donut-item{display:flex;align-items:center;gap:7px;font-size:12px;cursor:pointer;padding:3px 6px;border-radius:6px;transition:background .15s}
+.donut-item:hover{background:var(--color-background-secondary)}
+.donut-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.donut-label{flex:1;color:var(--color-text-primary)}
+.donut-val{font-weight:600;color:var(--color-text-primary)}
+.donut-pct{font-size:10px;color:var(--color-text-secondary);margin-left:2px}
+/* Bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:10px}
+.bar-item{display:grid;grid-template-columns:90px 1fr 36px;align-items:center;gap:8px;animation:fadeSlide .4s ease both}
+.bar-label{font-size:11px;color:var(--color-text-secondary);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{height:8px;background:var(--color-background-secondary);border-radius:4px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;animation:barIn .6s ease both;transition:width .5s}
+.bar-val{font-size:11px;font-weight:600;text-align:right}
+/* Manday gauge */
+.gauge-wrap{display:flex;gap:12px;align-items:flex-start}
+.gauge-stats{display:flex;flex-direction:column;gap:8px;flex:1}
+.gauge-stat{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border-radius:8px;background:var(--color-background-secondary)}
+.gauge-stat-label{font-size:11px;color:var(--color-text-secondary)}
+.gauge-stat-val{font-size:15px;font-weight:600}
+.gauge-bar-wrap{margin-top:10px}
+.gauge-bar-track{height:12px;background:var(--color-background-secondary);border-radius:6px;overflow:hidden;margin-bottom:5px}
+.gauge-bar-fill{height:100%;border-radius:6px;transition:width .7s cubic-bezier(.4,0,.2,1);animation:barIn .7s ease both}
+.gauge-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-secondary)}
+/* Priority breakdown */
+.prio-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.prio-box{padding:10px 12px;border-radius:8px;border:.5px solid transparent;cursor:pointer;transition:transform .15s}
+.prio-box:hover{transform:translateY(-1px)}
+.prio-box-label{font-size:10px;font-weight:500;margin-bottom:4px}
+.prio-box-num{font-size:24px;font-weight:600;line-height:1}
+/* Timeline / recent activity */
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl-item{display:flex;gap:10px;padding:7px 0;border-bottom:.5px solid var(--color-border-tertiary);animation:fadeSlide .3s ease both}
+.tl-item:last-child{border-bottom:none}
+.tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.tl-content{flex:1;font-size:11px}
+.tl-title{color:var(--color-text-primary);font-weight:500}
+.tl-sub{color:var(--color-text-secondary);margin-top:1px}
+.tl-time{font-size:10px;color:var(--color-text-tertiary,#b4b2a9);flex-shrink:0}
+/* Completion ring */
+.ring-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.ring-center{text-align:center;margin-top:-4px}
+.ring-pct{font-size:22px;font-weight:700}
+.ring-label{font-size:10px;color:var(--color-text-secondary)}
 
 /* ── Modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:200;padding:1rem}
@@ -234,7 +291,7 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
         RBS – ERP Issue Request Monitor
         <span class="badge-live"><span class="pulse"></span>Apps Script</span>
       </div>
-      <div class="page-sub">ติดตามสถานะ Issue Request ระหว่าง IT (RBS) และทีม Consultant (Newdawn)</div>
+      <div class="page-sub">ติดตามสถานะ Issue Request ระหว่าง IT ฝั่งลูกค้า (RBS) และทีม Consultant (ND)</div>
     </div>
     <div class="topbar-actions">
       <div class="user-badge">
@@ -311,18 +368,38 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
 
   <!-- ─── DASHBOARD TAB ─────────────────────────────────────────────────── -->
   <div id="panel-dashboard" class="tab-panel">
-    <div class="dash-grid">
-      <div class="dash-card">
-        <div class="dash-card-title"><i class="ti ti-building" style="font-size:13px"></i>Issues แยกตามแผนก</div>
-        <div id="dash-dept"></div>
+    <div class="dash-wrap" id="dash-wrap">
+      <!-- Row 1: stat cards -->
+      <div class="dash-row dash-row-4" id="dash-stat-row"></div>
+      <!-- Row 2: donut + dept bar + manday -->
+      <div class="dash-row dash-row-3">
+        <div class="dc" id="dash-dept-card">
+          <div class="dc-title"><i class="ti ti-building-skyscraper"></i>Issues แยกตามแผนก</div>
+          <div class="bar-chart" id="dash-dept"></div>
+        </div>
+        <div class="dc" id="dash-status-card">
+          <div class="dc-title"><i class="ti ti-chart-donut"></i>Status Overview</div>
+          <div id="dash-status"></div>
+        </div>
+        <div class="dc" id="dash-prio-card">
+          <div class="dc-title"><i class="ti ti-flag"></i>Priority</div>
+          <div class="prio-grid" id="dash-prio"></div>
+        </div>
       </div>
-      <div class="dash-card">
-        <div class="dash-card-title"><i class="ti ti-clock-hour-4" style="font-size:13px"></i>Manday Summary</div>
-        <div id="dash-manday"></div>
-      </div>
-      <div class="dash-card">
-        <div class="dash-card-title"><i class="ti ti-chart-pie" style="font-size:13px"></i>Status Overview</div>
-        <div id="dash-status"></div>
+      <!-- Row 3: manday + completion ring + recent log -->
+      <div class="dash-row dash-row-3">
+        <div class="dc" id="dash-manday-card">
+          <div class="dc-title"><i class="ti ti-clock-bolt"></i>Manday Overview</div>
+          <div id="dash-manday"></div>
+        </div>
+        <div class="dc" style="display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div class="dc-title" style="margin-bottom:8px"><i class="ti ti-circle-check"></i>Completion Rate</div>
+          <div id="dash-ring"></div>
+        </div>
+        <div class="dc">
+          <div class="dc-title"><i class="ti ti-history"></i>กิจกรรมล่าสุด</div>
+          <div class="timeline" id="dash-timeline"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -964,45 +1041,160 @@ function renderLog() {
 function renderDashboard() {
   const S = SUMMARY;
   if (!S.byDept) return;
-
-  // Dept chart
-  const maxDept = Math.max(...S.byDept.map(d=>d.total), 1);
-  document.getElementById('dash-dept').innerHTML = S.byDept.filter(d=>d.total>0).map(d=>`
-    <div class="dept-row">
-      <div class="dept-name">${d.dept}</div>
-      <div class="dept-bar-wrap"><div class="dept-bar" style="width:${d.total/maxDept*100}%"></div></div>
-      <div class="dept-count">${d.total}</div>
-    </div>`).join('') || '<div style="color:#888780;font-size:12px">ยังไม่มีข้อมูล</div>';
-
-  // Manday
-  const mdEst = S.mandayEst||0, mdUsed = S.mandayUsed||0;
-  const pct = mdEst>0 ? Math.round(mdUsed/mdEst*100) : 0;
-  document.getElementById('dash-manday').innerHTML = `
-    <div style="display:flex;gap:16px;margin-bottom:12px">
-      <div style="text-align:center"><div style="font-size:11px;color:#888780;margin-bottom:3px">ประเมินรวม</div><div style="font-size:22px;font-weight:500;color:#185FA5">${mdEst.toFixed(1)}</div><div style="font-size:10px;color:#888780">MD</div></div>
-      <div style="text-align:center"><div style="font-size:11px;color:#888780;margin-bottom:3px">ใช้ไปรวม</div><div style="font-size:22px;font-weight:500;color:${mdUsed>mdEst?'#A32D2D':'#3B6D11'}">${mdUsed.toFixed(1)}</div><div style="font-size:10px;color:#888780">MD</div></div>
-      <div style="text-align:center"><div style="font-size:11px;color:#888780;margin-bottom:3px">% ใช้ไป</div><div style="font-size:22px;font-weight:500;color:#534AB7">${pct}%</div><div style="font-size:10px;color:#888780">จากประเมิน</div></div>
-    </div>
-    <div style="background:#f1efe8;border-radius:6px;height:10px;overflow:hidden">
-      <div style="width:${Math.min(pct,100)}%;height:100%;border-radius:6px;background:${pct>100?'#A32D2D':'#185FA5'};transition:width .5s"></div>
-    </div>
-    <div style="font-size:11px;color:#888780;margin-top:6px">${(S.overEstimate||0)>0?`<span style="color:#A32D2D"><i class="ti ti-alert-triangle"></i> ${S.overEstimate} Issue เกิน estimate</span>`:'ไม่มี Issue เกิน estimate ✓'}</div>`;
-
-  // Status
   const total = S.total||1;
-  const statusInfo = [
-    {label:'Wait Confirmed',   val:S.waitConfirmed||0, color:'#854F0B', bg:'#FAEEDA'},
-    {label:'Waiting Send UAT', val:S.waitingSendUAT||0,color:'#185FA5', bg:'#E6F1FB'},
-    {label:'Waiting Conf.UAT', val:S.waitingConfUAT||0,color:'#534AB7', bg:'#EEEDFE'},
-    {label:'Completed',        val:S.completed||0,     color:'#3B6D11', bg:'#EAF3DE'},
-    {label:'Cancel',           val:S.cancel||0,        color:'#888780', bg:'#F1EFE8'},
+
+  // ── Stat cards row ──────────────────────────────────────────────────
+  const stats = [
+    {label:'Issue ทั้งหมด',    val:S.total||0,         color:'#185FA5', bg:'#E6F1FB', icon:'ti-list-details', accent:'#185FA5'},
+    {label:'กำลังดำเนินการ',   val:S.active||0,        color:'#854F0B', bg:'#FAEEDA', icon:'ti-loader',       accent:'#854F0B'},
+    {label:'Completed ทั้งคู่', val:S.completed||0,     color:'#3B6D11', bg:'#EAF3DE', icon:'ti-circle-check', accent:'#3B6D11'},
+    {label:'Cancel',            val:S.cancel||0,        color:'#888780', bg:'#F1EFE8', icon:'ti-ban',          accent:'#888780'},
   ];
-  document.getElementById('dash-status').innerHTML = statusInfo.map(s=>`
-    <div class="dept-row">
-      <div class="dept-name"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${s.color};margin-right:6px"></span>${s.label}</div>
-      <div class="dept-bar-wrap"><div class="dept-bar" style="width:${s.val/total*100}%;background:${s.color}"></div></div>
-      <div class="dept-count" style="color:${s.color}">${s.val}</div>
+  document.getElementById('dash-stat-row').innerHTML = stats.map((s,i) => `
+    <div class="dc" style="animation-delay:${i*60}ms">
+      <div class="dc-accent" style="background:${s.accent}"></div>
+      <div style="display:flex;align-items:flex-start;justify-content:space-between">
+        <div>
+          <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:6px">${s.label}</div>
+          <div class="stat-num" style="color:${s.color}">${s.val}</div>
+        </div>
+        <div style="width:36px;height:36px;border-radius:10px;background:${s.bg};display:flex;align-items:center;justify-content:center">
+          <i class="ti ${s.icon}" style="font-size:17px;color:${s.color}"></i>
+        </div>
+      </div>
+      <div style="margin-top:10px;background:var(--color-background-secondary);border-radius:4px;height:4px;overflow:hidden">
+        <div style="width:${Math.min(s.val/Math.max(S.total,1)*100,100)}%;height:100%;background:${s.color};border-radius:4px;transition:width .6s"></div>
+      </div>
     </div>`).join('');
+
+  // ── Dept bar chart ─────────────────────────────────────────────────
+  const activeDepts = S.byDept.filter(d=>d.total>0);
+  const maxDept = Math.max(...activeDepts.map(d=>d.total), 1);
+  const deptColors = ['#185FA5','#3B6D11','#534AB7','#854F0B','#A32D2D','#185FA5','#888780'];
+  document.getElementById('dash-dept').innerHTML = activeDepts.map((d,i)=>`
+    <div class="bar-item" style="animation-delay:${i*50}ms" onclick="document.getElementById('f-dept').value='${d.dept}';switchTab('monitor');renderTable()">
+      <div class="bar-label">${d.dept}</div>
+      <div class="bar-track">
+        <div class="bar-fill" style="width:${d.total/maxDept*100}%;background:${deptColors[i%deptColors.length]};animation-delay:${i*50}ms"></div>
+      </div>
+      <div class="bar-val" style="color:${deptColors[i%deptColors.length]}">${d.total}</div>
+    </div>`).join('') || '<div style="color:var(--color-text-secondary);font-size:12px">ยังไม่มีข้อมูล</div>';
+
+  // ── Donut chart ────────────────────────────────────────────────────
+  const statusData = [
+    {label:'Completed',         val:S.completed||0,        color:'#3B6D11'},
+    {label:'Wait Confirmed',    val:S.waitConfirmed||0,    color:'#854F0B'},
+    {label:'Waiting Send UAT',  val:S.waitingSendUAT||0,   color:'#185FA5'},
+    {label:'Waiting Conf.UAT',  val:S.waitingConfUAT||0,   color:'#534AB7'},
+    {label:'Cancel',            val:S.cancel||0,           color:'#888780'},
+  ];
+  const R=54, CX=64, CY=64, CIRC=2*Math.PI*R;
+  let offset=0, svgArcs='';
+  statusData.forEach(s=>{
+    const slice = (s.val/total)*CIRC;
+    svgArcs += `<circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="${s.color}" stroke-width="14"
+      stroke-dasharray="${slice} ${CIRC-slice}" stroke-dashoffset="${-offset}" stroke-linecap="butt"
+      style="transition:stroke-dasharray .5s ease" transform="rotate(-90 ${CX} ${CY})"/>`;
+    offset += slice;
+  });
+  document.getElementById('dash-status').innerHTML = `
+    <div class="donut-wrap">
+      <svg class="donut-svg" width="128" height="128" viewBox="0 0 128 128">
+        <circle cx="${CX}" cy="${CY}" r="${R}" fill="none" stroke="var(--color-background-secondary)" stroke-width="14"/>
+        ${svgArcs}
+        <text x="${CX}" y="${CY}" text-anchor="middle" dy="-6" style="font-size:18px;font-weight:700;fill:var(--color-text-primary)">${total}</text>
+        <text x="${CX}" y="${CY}" text-anchor="middle" dy="12" style="font-size:9px;fill:var(--color-text-secondary)">รวม</text>
+      </svg>
+      <div class="donut-legend">${statusData.filter(s=>s.val>0).map(s=>`
+        <div class="donut-item" onclick="setChip('${s.label}');switchTab('monitor')">
+          <div class="donut-dot" style="background:${s.color}"></div>
+          <div class="donut-label">${s.label}</div>
+          <div class="donut-val">${s.val}</div>
+          <div class="donut-pct">${Math.round(s.val/total*100)}%</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+
+  // ── Priority boxes ─────────────────────────────────────────────────
+  const prioData = [
+    {label:'Urgent', color:'#A32D2D', bg:'#FCEBEB', val:DATA.filter(i=>i.priority==='Urgent').length},
+    {label:'High',   color:'#854F0B', bg:'#FAEEDA', val:DATA.filter(i=>i.priority==='High').length},
+    {label:'Medium', color:'#185FA5', bg:'#E6F1FB', val:DATA.filter(i=>i.priority==='Medium').length},
+    {label:'Low',    color:'#888780', bg:'#F1EFE8', val:DATA.filter(i=>i.priority==='Low').length},
+  ];
+  document.getElementById('dash-prio').innerHTML = prioData.map(p=>`
+    <div class="prio-box" style="background:${p.bg};border-color:${p.color}22"
+      onclick="document.getElementById('f-prio').value='${p.label}';switchTab('monitor');renderTable()">
+      <div class="prio-box-label" style="color:${p.color}">${p.label}</div>
+      <div class="prio-box-num" style="color:${p.color}">${p.val}</div>
+    </div>`).join('');
+
+  // ── Manday gauge ───────────────────────────────────────────────────
+  const mdEst=S.mandayEst||0, mdUsed=S.mandayUsed||0;
+  const mdPct=mdEst>0?Math.min(Math.round(mdUsed/mdEst*100),100):0;
+  const mdColor=mdUsed>mdEst?'#A32D2D':mdPct>80?'#854F0B':'#185FA5';
+  document.getElementById('dash-manday').innerHTML = `
+    <div class="gauge-stats">
+      <div class="gauge-stat">
+        <span class="gauge-stat-label"><i class="ti ti-clock" style="font-size:12px;margin-right:4px"></i>ประเมินรวม</span>
+        <span class="gauge-stat-val" style="color:#185FA5">${mdEst.toFixed(1)} MD</span>
+      </div>
+      <div class="gauge-stat">
+        <span class="gauge-stat-label"><i class="ti ti-clock-check" style="font-size:12px;margin-right:4px"></i>ใช้ไปรวม</span>
+        <span class="gauge-stat-val" style="color:${mdColor}">${mdUsed.toFixed(1)} MD</span>
+      </div>
+      <div class="gauge-stat">
+        <span class="gauge-stat-label"><i class="ti ti-alert-triangle" style="font-size:12px;margin-right:4px"></i>เกิน Estimate</span>
+        <span class="gauge-stat-val" style="color:${(S.overEstimate||0)>0?'#A32D2D':'#3B6D11'}">${S.overEstimate||0} Issue</span>
+      </div>
+    </div>
+    <div class="gauge-bar-wrap">
+      <div class="gauge-bar-track">
+        <div class="gauge-bar-fill" style="width:${mdPct}%;background:${mdColor}"></div>
+      </div>
+      <div class="gauge-bar-labels">
+        <span>0</span>
+        <span style="color:${mdColor};font-weight:500">${mdPct}% ใช้ไป</span>
+        <span>${mdEst.toFixed(1)} MD</span>
+      </div>
+    </div>`;
+
+  // ── Completion ring ────────────────────────────────────────────────
+  const compPct = total>0 ? Math.round((S.completed||0)/total*100) : 0;
+  const r2=42,circ2=2*Math.PI*r2;
+  const dashOff=circ2-(compPct/100*circ2);
+  document.getElementById('dash-ring').innerHTML = `
+    <div class="ring-wrap">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="${r2}" fill="none" stroke="var(--color-background-secondary)" stroke-width="10"/>
+        <circle cx="55" cy="55" r="${r2}" fill="none" stroke="#3B6D11" stroke-width="10"
+          stroke-dasharray="${circ2}" stroke-dashoffset="${dashOff}"
+          stroke-linecap="round" transform="rotate(-90 55 55)"
+          style="transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1)"/>
+        <text x="55" y="50" text-anchor="middle" style="font-size:20px;font-weight:700;fill:var(--color-text-primary)">${compPct}%</text>
+        <text x="55" y="65" text-anchor="middle" style="font-size:9px;fill:var(--color-text-secondary)">Completed</text>
+      </svg>
+      <div style="text-align:center;font-size:11px;color:var(--color-text-secondary);margin-top:4px">${S.completed||0} จาก ${total} Issue</div>
+      <div style="text-align:center;font-size:10px;color:#3B6D11;margin-top:2px">UAT รอ Sign ${S.uatPending||0} Issue</div>
+    </div>`;
+
+  // ── Recent activity from LOG ───────────────────────────────────────
+  const recentLog = LOG.slice(0,6);
+  const actionColor = {
+    'Add Issue':'#3B6D11','Update Status ND':'#185FA5','Update Status RBS':'#534AB7',
+    'Update Manday':'#854F0B','Edit Detail':'#888780','Delete Issue':'#A32D2D','Update UAT':'#3B6D11'
+  };
+  document.getElementById('dash-timeline').innerHTML = recentLog.length
+    ? recentLog.map((l,i)=>`
+      <div class="tl-item" style="animation-delay:${i*40}ms">
+        <div class="tl-dot" style="background:${actionColor[l.action]||'#888780'}"></div>
+        <div class="tl-content">
+          <div class="tl-title">${esc(l.editor)} — ${esc(l.issueId)}</div>
+          <div class="tl-sub">${l.action}${l.field?' · '+esc(l.field):''}</div>
+        </div>
+        <div class="tl-time">${l.ts.slice(11,16)||''}</div>
+      </div>`).join('')
+    : '<div style="color:var(--color-text-secondary);font-size:12px;padding:8px 0">โหลด Change Log ก่อนครับ</div>';
 }
 
 // ═══════════════════════════════════════════════════════════════════════
