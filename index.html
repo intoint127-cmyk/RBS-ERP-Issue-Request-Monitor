@@ -174,6 +174,22 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
 
+
+/* ── Attachments ── */
+.attach-zone{border:1.5px dashed var(--color-border-primary);border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .2s;margin-top:8px;background:var(--color-background-secondary)}
+.attach-zone:hover,.attach-zone.drag{border-color:#185FA5;background:#E6F1FB}
+.attach-zone input[type=file]{display:none}
+.attach-zone-label{font-size:12px;color:var(--color-text-secondary)}
+.attach-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.attach-item{display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--color-background-secondary);border:.5px solid var(--color-border-tertiary);border-radius:6px;font-size:11px;max-width:200px}
+.attach-item img{width:32px;height:32px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.attach-item-icon{width:32px;height:32px;border-radius:4px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;color:#185FA5}
+.attach-item-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--color-text-primary)}
+.attach-item-del{cursor:pointer;color:#A32D2D;flex-shrink:0;font-size:14px;opacity:.6}
+.attach-item-del:hover{opacity:1}
+.attach-uploading{opacity:.5;pointer-events:none}
+.attach-progress{font-size:10px;color:#185FA5;margin-top:4px}
+
 /* ── Toast ── */
 .toast{position:fixed;bottom:24px;right:24px;background:#1a1a18;color:#fff;padding:10px 16px;border-radius:8px;font-size:12px;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;max-width:280px}
 .toast.show{opacity:1;transform:translateY(0)}
@@ -705,6 +721,15 @@ function buildDetailInner(i, eid) {
       <div class="uat-item"><span class="uat-dot ${i.uat_rbs==='Yes'?'yes':'no'}"></span>RBS UAT Signed: <strong>${i.uat_rbs==='Yes'?'✓ Sign แล้ว':'ยังไม่ Sign'}</strong>
         <button class="uat-toggle" onclick="toggleUAT('${eid}','uat_rbs')" style="margin-left:4px">${i.uat_rbs==='Yes'?'ยกเลิก':'Mark Sign แล้ว'}</button></div>
     </div>
+    <div style="margin-top:10px;padding-top:10px;border-top:.5px solid #e8e7de">
+      <div style="font-size:11px;font-weight:500;color:var(--color-text-secondary);margin-bottom:6px"><i class="ti ti-paperclip" style="font-size:12px"></i> ไฟล์แนบ</div>
+      <div class="attach-list" id="attach-list-${eid}"></div>
+      <div class="attach-zone" id="attach-zone-${eid}" onclick="document.getElementById('attach-input-${eid}').click()" ondragover="event.preventDefault();this.classList.add('drag')" ondragleave="this.classList.remove('drag')" ondrop="handleDrop(event,'${eid}')">
+        <input type="file" id="attach-input-${eid}" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="handleFileSelect(event,'${eid}')">
+        <div class="attach-zone-label"><i class="ti ti-upload" style="font-size:16px;display:block;margin-bottom:4px;color:#888780"></i>คลิกหรือลากไฟล์มาวาง<br><span style="font-size:10px">รองรับ รูปภาพ, PDF, Word, Excel (สูงสุด 2MB ต่อไฟล์)</span></div>
+      </div>
+      <div class="attach-progress" id="attach-progress-${eid}"></div>
+    </div>
     <div class="detail-save-row">
       <button class="btn btn-danger btn-sm" onclick="confirmDelete('${eid}')"><i class="ti ti-trash"></i>ลบ Issue</button>
       <div style="display:flex;align-items:center;gap:8px">
@@ -722,7 +747,7 @@ function toggleDetail(id) {
   if (!el) return;
   const wasOpen = el.classList.contains('open');
   document.querySelectorAll('.detail-inner').forEach(d => d.classList.remove('open'));
-  if (!wasOpen) el.classList.add('open');
+  if (!wasOpen) { el.classList.add('open'); const issue=findIssue(id); if(issue) renderAttachments(id, issue.attachments||''); }
 }
 
 function findIssue(eid) {
@@ -1049,6 +1074,104 @@ function onError(e) {
     document.getElementById('sync-msg').textContent = 'โหลดไม่สำเร็จ: '+(e.message||e);
   }
   toast('❌ เกิดข้อผิดพลาด: '+(e.message||e), 4000);
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════
+// ATTACHMENTS
+// ═══════════════════════════════════════════════════════════════════════
+function renderAttachments(eid, attachJson) {
+  const list = document.getElementById('attach-list-'+eid);
+  if (!list) return;
+  let items = [];
+  try { items = attachJson ? JSON.parse(attachJson) : []; } catch(e) { items = []; }
+  if (!items.length) { list.innerHTML = ''; return; }
+  list.innerHTML = items.map(a => {
+    const isImg = a.mime && a.mime.startsWith('image/');
+    const thumb = isImg
+      ? `<img src="data:${a.mime};base64,${a.data}" alt="${esc(a.name)}">`
+      : `<div class="attach-item-icon"><i class="ti ti-file" aria-hidden="true"></i></div>`;
+    return `<div class="attach-item" id="att-${a.id}">
+      ${thumb}
+      <span class="attach-item-name" title="${esc(a.name)}">${esc(a.name)}</span>
+      ${isImg ? `<a href="data:${a.mime};base64,${a.data}" download="${esc(a.name)}" style="color:#185FA5;font-size:13px" title="ดาวน์โหลด"><i class="ti ti-download" aria-hidden="true"></i></a>` : `<a href="data:${a.mime};base64,${a.data}" download="${esc(a.name)}" style="color:#185FA5;font-size:13px"><i class="ti ti-download" aria-hidden="true"></i></a>`}
+      <span class="attach-item-del" onclick="removeAttach('${eid}','${a.id}')" title="ลบ"><i class="ti ti-x" aria-hidden="true"></i></span>
+    </div>`;
+  }).join('');
+}
+
+function handleFileSelect(event, eid) {
+  const files = Array.from(event.target.files);
+  files.forEach(f => uploadFile(f, eid));
+  event.target.value = '';
+}
+
+function handleDrop(event, eid) {
+  event.preventDefault();
+  document.getElementById('attach-zone-'+eid).classList.remove('drag');
+  const files = Array.from(event.dataTransfer.files);
+  files.forEach(f => uploadFile(f, eid));
+}
+
+function uploadFile(file, eid) {
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ ไฟล์ ' + file.name + ' ใหญ่เกิน 2MB'); return; }
+  const progress = document.getElementById('attach-progress-'+eid);
+  const zone = document.getElementById('attach-zone-'+eid);
+  if (progress) progress.textContent = '⏳ กำลังอัพโหลด ' + file.name + '...';
+  if (zone) zone.classList.add('attach-uploading');
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result.split(',')[1];
+    const issue  = findIssue(eid);
+    if (!issue) return;
+
+    apiFetch({
+      action: 'uploadAttachment',
+      issueId: issue.id,
+      fileName: file.name,
+      base64Data: base64,
+      mimeType: file.type || 'application/octet-stream',
+      editor: EDITOR,
+      target: 'issue'
+    }).then(r => {
+      if (progress) progress.textContent = '';
+      if (zone) zone.classList.remove('attach-uploading');
+      if (r.ok) {
+        // Update local data
+        let items = [];
+        try { items = JSON.parse(issue.attachments || '[]'); } catch(e) {}
+        items.push({ id: r.id, name: file.name, mime: file.type, data: base64, uploader: EDITOR, ts: new Date().toLocaleString('th-TH') });
+        issue.attachments = JSON.stringify(items);
+        renderAttachments(eid, issue.attachments);
+        toast('✓ แนบไฟล์ ' + file.name + ' แล้ว');
+      } else {
+        toast('❌ ' + r.error, 4000);
+      }
+    }).catch(e => {
+      if (progress) progress.textContent = '';
+      if (zone) zone.classList.remove('attach-uploading');
+      toast('❌ ' + e.message, 4000);
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeAttach(eid, attachId) {
+  const issue = findIssue(eid);
+  if (!issue) return;
+  if (!confirm('ต้องการลบไฟล์นี้ใช่หรือไม่?')) return;
+  apiFetch({ action: 'deleteAttachment', issueId: issue.id, attachId, editor: EDITOR })
+    .then(r => {
+      if (r.ok) {
+        let items = [];
+        try { items = JSON.parse(issue.attachments || '[]'); } catch(e) {}
+        items = items.filter(a => a.id !== attachId);
+        issue.attachments = JSON.stringify(items);
+        renderAttachments(eid, issue.attachments);
+        toast('🗑 ลบไฟล์แล้ว');
+      } else toast('❌ ' + r.error);
+    });
 }
 
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
