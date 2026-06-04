@@ -1400,13 +1400,16 @@ function renderAttachments(eid, attachJson) {
   if (!items.length) { list.innerHTML = ''; return; }
   list.innerHTML = items.map(a => {
     const isImg = a.mime && a.mime.startsWith('image/');
-    const thumb = isImg
-      ? `<img src="data:${a.mime};base64,${a.data}" alt="${esc(a.name)}">`
+    // Support both old base64 (a.data) and new Drive URL (a.url)
+    const imgSrc  = a.url  || (a.data ? 'data:'+a.mime+';base64,'+a.data : '');
+    const openUrl = a.viewUrl || a.url || imgSrc;
+    const icon = isImg && imgSrc
+      ? `<img src="${imgSrc}" alt="${esc(a.name)}" onerror="this.style.display='none'">`
       : `<div class="attach-item-icon"><i class="ti ti-file" aria-hidden="true"></i></div>`;
     return `<div class="attach-item" id="att-${a.id}">
-      ${thumb}
+      ${icon}
       <span class="attach-item-name" title="${esc(a.name)}">${esc(a.name)}</span>
-      ${isImg ? `<a href="data:${a.mime};base64,${a.data}" download="${esc(a.name)}" style="color:#185FA5;font-size:13px" title="ดาวน์โหลด"><i class="ti ti-download" aria-hidden="true"></i></a>` : `<a href="data:${a.mime};base64,${a.data}" download="${esc(a.name)}" style="color:#185FA5;font-size:13px"><i class="ti ti-download" aria-hidden="true"></i></a>`}
+      <a href="${openUrl}" target="_blank" style="color:#185FA5;font-size:13px;flex-shrink:0" title="เปิดไฟล์"><i class="ti ti-external-link" aria-hidden="true"></i></a>
       <span class="attach-item-del" onclick="removeAttach('${eid}','${a.id}')" title="ลบ"><i class="ti ti-x" aria-hidden="true"></i></span>
     </div>`;
   }).join('');
@@ -1453,7 +1456,7 @@ function uploadFile(file, eid) {
         // Update local data
         let items = [];
         try { items = JSON.parse(issue.attachments || '[]'); } catch(e) {}
-        items.push({ id: r.id, name: file.name, mime: file.type, data: base64, uploader: EDITOR, ts: new Date().toLocaleString('th-TH') });
+        items.push({ id: r.id, name: file.name, mime: file.type, url: r.url, viewUrl: r.viewUrl, uploader: EDITOR, ts: new Date().toLocaleString('th-TH') });
         issue.attachments = JSON.stringify(items);
         renderAttachments(eid, issue.attachments);
         toast('✓ แนบไฟล์ ' + file.name + ' แล้ว');
