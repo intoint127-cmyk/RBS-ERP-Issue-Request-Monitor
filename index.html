@@ -440,6 +440,24 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
         <textarea class="form-textarea" id="n-rbsremark" style="min-height:50px" placeholder="หมายเหตุจาก RBS"></textarea>
       </div>
     </div>
+    <div class="form-row" style="margin-top:4px">
+      <label><i class="ti ti-paperclip" style="font-size:11px;margin-right:3px"></i>ไฟล์แนบ (ถ้ามี)</label>
+      <div class="attach-zone" id="new-attach-zone"
+        onclick="document.getElementById('new-attach-input').click()"
+        ondragover="event.preventDefault();this.classList.add('drag')"
+        ondragleave="this.classList.remove('drag')"
+        ondrop="handleNewIssueDrop(event)">
+        <input type="file" id="new-attach-input" multiple
+          accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt"
+          onchange="handleNewIssueFile(event)">
+        <div class="attach-zone-label">
+          <i class="ti ti-upload" style="font-size:16px;display:block;margin-bottom:4px;color:#888780"></i>
+          คลิกหรือลากไฟล์มาวาง<br>
+          <span style="font-size:10px">รองรับ รูปภาพ, PDF, Word, Excel (สูงสุด 2MB ต่อไฟล์)</span>
+        </div>
+      </div>
+      <div class="attach-list" id="new-attach-list"></div>
+    </div>
   </div>
   <div class="modal-footer">
     <button class="btn" onclick="closeModal('modal-add')">ยกเลิก</button>
@@ -842,6 +860,10 @@ function openAddModal() {
   document.getElementById('n-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('n-snd').value  = 'Wait Confirmed';
   document.getElementById('n-srbs').value = 'Wait Confirmed';
+  // Reset attachments
+  window._newIssueAttachments = [];
+  const list = document.getElementById('new-attach-list');
+  if (list) list.innerHTML = '';
   openModal('modal-add');
 }
 
@@ -869,6 +891,7 @@ function submitAddIssue() {
     uat_nd:'No', uat_rbs:'No',
     nd_remark:    document.getElementById('n-ndremark').value.trim(),
     rbs_remark:   document.getElementById('n-rbsremark').value.trim(),
+    attachments:  JSON.stringify(window._newIssueAttachments || []),
   };
 
   google.script.run
@@ -876,12 +899,14 @@ function submitAddIssue() {
       btn.disabled = false;
       btn.innerHTML = '<i class="ti ti-check"></i>บันทึก Issue';
       if (r.ok) {
+        d.attachments = JSON.stringify(window._newIssueAttachments || []);
         DATA.unshift(d);
         newIds.add(id);
+        window._newIssueAttachments = [];
         closeModal('modal-add');
         renderTable(); renderMetrics(); renderChips();
         toast(`✓ เพิ่ม Issue ${id} แล้ว`);
-        setTimeout(()=>{ const el=document.getElementById('d-'+CSS.escape(id)); if(el) el.classList.add('open'); }, 150);
+        setTimeout(()=>{ const el=document.getElementById('d-'+CSS.escape(id)); if(el) { el.classList.add('open'); renderAttachments(CSS.escape(id), d.attachments); } }, 150);
       } else { toast('❌ '+r.error); }
     })
     .withFailureHandler(e => {
@@ -1076,6 +1101,51 @@ function onError(e) {
   toast('❌ เกิดข้อผิดพลาด: '+(e.message||e), 4000);
 }
 
+
+
+// ── Attach handlers for Add Issue modal ─────────────────────────────
+window._newIssueAttachments = [];
+
+function handleNewIssueFile(event) {
+  Array.from(event.target.files).forEach(f => addNewIssueFile(f));
+  event.target.value = '';
+}
+function handleNewIssueDrop(event) {
+  event.preventDefault();
+  document.getElementById('new-attach-zone').classList.remove('drag');
+  Array.from(event.dataTransfer.files).forEach(f => addNewIssueFile(f));
+}
+function addNewIssueFile(file) {
+  if (file.size > 2 * 1024 * 1024) { toast('⚠️ ' + file.name + ' ใหญ่เกิน 2MB'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64 = e.target.result.split(',')[1];
+    const item = { id: 'tmp_'+Date.now(), name: file.name, mime: file.type||'application/octet-stream', data: base64, uploader: EDITOR, ts: new Date().toLocaleString('th-TH') };
+    window._newIssueAttachments.push(item);
+    renderNewIssueAttachList();
+    toast('✓ เพิ่มไฟล์ ' + file.name);
+  };
+  reader.readAsDataURL(file);
+}
+function removeNewIssueFile(id) {
+  window._newIssueAttachments = window._newIssueAttachments.filter(a => a.id !== id);
+  renderNewIssueAttachList();
+}
+function renderNewIssueAttachList() {
+  const list = document.getElementById('new-attach-list');
+  if (!list) return;
+  const items = window._newIssueAttachments;
+  if (!items.length) { list.innerHTML = ''; return; }
+  list.innerHTML = items.map(a => {
+    const isImg = a.mime.startsWith('image/');
+    const thumb = isImg ? `<img src="data:${a.mime};base64,${a.data}" alt="${esc(a.name)}">` : `<div class="attach-item-icon"><i class="ti ti-file" aria-hidden="true"></i></div>`;
+    return `<div class="attach-item">
+      ${thumb}
+      <span class="attach-item-name" title="${esc(a.name)}">${esc(a.name)}</span>
+      <span class="attach-item-del" onclick="removeNewIssueFile('${a.id}')"><i class="ti ti-x" aria-hidden="true"></i></span>
+    </div>`;
+  }).join('');
+}
 
 // ═══════════════════════════════════════════════════════════════════════
 // ATTACHMENTS
