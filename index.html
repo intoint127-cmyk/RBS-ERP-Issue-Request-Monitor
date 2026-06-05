@@ -115,6 +115,14 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
 .p-urgent{background:#FCEBEB;color:#A32D2D}.p-high{background:#FAEEDA;color:#854F0B}
 .p-medium{background:#E6F1FB;color:#185FA5}.p-low{background:#f1efe8;color:#888780}
 .dept-tag{font-family:monospace;font-size:10px;background:#f1efe8;padding:2px 6px;border-radius:4px;color:#888780}
+.dept-chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:4px 10px;border-radius:20px;border:.5px solid #e0dfd6;background:#fff;color:#444441;cursor:pointer;transition:all .15s;white-space:nowrap}
+.dept-chip:hover{background:#f1efe8;border-color:#888780}
+.dept-chip.active{background:#1a1a18;color:#fff;border-color:#1a1a18}
+.dept-chip .cnt{font-weight:600;font-size:11px}
+.dept-chip .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dept-bar-section{margin-bottom:.75rem}
+.dept-bar-section-title{font-size:11px;font-weight:500;color:#888780;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between}
+.dept-chips-wrap{display:flex;gap:5px;flex-wrap:wrap}
 .id-mono{font-family:monospace;font-size:11px;color:#888780}
 .uat-yes{color:#3B6D11;font-size:13px}.uat-no{color:#c8c7be;font-size:13px}
 .new-badge{display:inline-block;font-size:9px;background:#FCEBEB;color:#A32D2D;padding:1px 5px;border-radius:10px;margin-left:4px;font-weight:600}
@@ -366,6 +374,14 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
   <div id="panel-monitor" class="tab-panel active">
     <div class="metrics" id="metrics-area"></div>
     <div class="summary-bar" id="summary-chips"></div>
+    <!-- Dept summary chips -->
+    <div class="dept-bar-section" id="dept-section">
+      <div class="dept-bar-section-title">
+        <span><i class="ti ti-building" style="font-size:11px;margin-right:3px"></i>แยกตามแผนก</span>
+        <span id="dept-total-label" style="font-size:10px;color:#888780"></span>
+      </div>
+      <div class="dept-chips-wrap" id="dept-chips"></div>
+    </div>
     <div class="filters">
       <div class="search-box">
         <i class="ti ti-search" style="color:#888780;font-size:14px"></i>
@@ -381,7 +397,7 @@ tbody td{padding:8px 12px;color:#1a1a18;vertical-align:middle}
         <option>Completed</option><option>Wait Confirmed</option>
         <option>Waiting Send UAT</option><option>Waiting Confirm UAT</option><option>Cancel</option>
       </select>
-      <select id="f-dept" onchange="renderTable()">
+      <select id="f-dept" onchange="activeDept=this.value;renderDeptChips();renderTable()">
         <option value="">แผนกทั้งหมด</option>
         <option>Purchase</option><option>Sales</option><option>Warehouse</option>
         <option>Account</option><option>Finance</option><option>Administrator</option><option>Logistic</option>
@@ -675,6 +691,7 @@ function onSummaryLoaded(res) {
   hideSyncBar();
   renderMetrics();
   renderChips();
+  renderDeptChips();
   renderTable();
   renderDashboard();
 }
@@ -736,7 +753,61 @@ function renderChips() {
   document.getElementById('summary-chips').innerHTML = html;
 }
 
-function setChip(v){ activeChip = activeChip === v ? '' : v; renderChips(); renderTable(); }
+
+function renderDeptChips() {
+  const depts = ["Purchase","Sales","Warehouse","Account","Finance","Administrator","Logistic"];
+  const deptColors = {
+    "Purchase":      "#185FA5",
+    "Sales":         "#3B6D11",
+    "Warehouse":     "#854F0B",
+    "Account":       "#534AB7",
+    "Finance":       "#A32D2D",
+    "Administrator": "#888780",
+    "Logistic":      "#185FA5",
+  };
+
+  // Count by dept from currently filtered data (respect status chip)
+  const base = activeChip ? DATA.filter(i => {
+    if (activeChip === 'ACTIVE') return i.status_nd !== 'Completed' && i.status_nd !== 'Cancel';
+    return i.status_nd === activeChip;
+  }) : DATA;
+
+  const counts = {};
+  let total = 0;
+  depts.forEach(d => {
+    counts[d] = base.filter(i => i.dept === d).length;
+    total += counts[d];
+  });
+
+  const active = depts.filter(d => counts[d] > 0);
+  if (!active.length) { document.getElementById('dept-chips').innerHTML = ''; return; }
+
+  const html = active.map(d => {
+    const color = deptColors[d] || '#185FA5';
+    const isActive = activeDept === d;
+    return `<span class="dept-chip ${isActive?'active':''}" onclick="setDept('${d}')" style="${isActive?'':''}">
+      <span class="dot" style="background:${isActive?'#fff':color}"></span>
+      ${d}
+      <span class="cnt" style="background:${isActive?'rgba(255,255,255,.2)':'#f1efe8'};padding:1px 5px;border-radius:10px;font-size:10px;color:${isActive?'#fff':color}">${counts[d]}</span>
+    </span>`;
+  }).join('');
+
+  document.getElementById('dept-chips').innerHTML = html;
+  const label = document.getElementById('dept-total-label');
+  if (label) label.textContent = activeDept ? `กรอง: ${activeDept} (${counts[activeDept]||0} Issue)` : `${total} Issue รวมทุกแผนก`;
+}
+
+let activeDept = '';
+function setDept(d) {
+  activeDept = activeDept === d ? '' : d;
+  // sync filter dropdown
+  const sel = document.getElementById('f-dept');
+  if (sel) sel.value = activeDept;
+  renderDeptChips();
+  renderTable();
+}
+
+function setChip(v){ activeChip = activeChip === v ? '' : v; activeDept=''; if(document.getElementById('f-dept')) document.getElementById('f-dept').value=''; renderChips(); renderDeptChips(); renderTable(); }
 
 // ═══════════════════════════════════════════════════════════════════════
 // Table
@@ -968,7 +1039,7 @@ function confirmDelete(eid) {
   if (!confirm(`ต้องการลบ Issue "${issue.id}" ใช่หรือไม่?\nการลบไม่สามารถย้อนกลับได้`)) return;
   google.script.run
     .withSuccessHandler(r => {
-      if (r.ok) { DATA = DATA.filter(i=>i.id!==issue.id); newIds.delete(issue.id); renderTable(); renderMetrics(); renderChips(); toast('🗑 ลบ Issue แล้ว'); }
+      if (r.ok) { DATA = DATA.filter(i=>i.id!==issue.id); newIds.delete(issue.id); renderTable(); renderMetrics(); renderChips(); renderDeptChips(); toast('🗑 ลบ Issue แล้ว'); }
       else toast('❌ '+r.error);
     })
     .withFailureHandler(e => toast('❌ '+e.message))
@@ -1030,7 +1101,7 @@ function submitAddIssue() {
         newIds.add(id);
         window._newIssueAttachments = [];
         closeModal('modal-add');
-        renderTable(); renderMetrics(); renderChips();
+        renderTable(); renderMetrics(); renderChips(); renderDeptChips();
         toast(`✓ เพิ่ม Issue ${id} แล้ว`);
         setTimeout(()=>{ const el=document.getElementById('d-'+CSS.escape(id)); if(el) { el.classList.add('open'); renderAttachments(CSS.escape(id), d.attachments); } }, 150);
       } else { toast('❌ '+r.error); }
