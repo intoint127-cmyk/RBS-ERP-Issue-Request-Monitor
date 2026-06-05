@@ -717,27 +717,82 @@ function onLogLoaded(res) {
 // ═══════════════════════════════════════════════════════════════════════
 // Metrics & Chips
 // ═══════════════════════════════════════════════════════════════════════
+function calcMetrics(data) {
+  // คำนวณ metrics จาก data array (รองรับ filter แผนก)
+  const total       = data.length;
+  const active      = data.filter(i => i.status_nd !== 'Completed' && i.status_nd !== 'Cancel').length;
+  const waitConf    = data.filter(i => i.status_nd === 'Wait Confirmed').length;
+  const waitSendUAT = data.filter(i => i.status_nd === 'Waiting Send UAT').length;
+  const waitConfUAT = data.filter(i => i.status_nd === 'Waiting Confirm UAT').length;
+  const completed   = data.filter(i => i.status_nd === 'Completed' && i.status_rbs === 'Completed').length;
+  const cancel      = data.filter(i => i.status_nd === 'Cancel').length;
+  const mdEst       = data.reduce((s,i) => s + (parseFloat(i.manday_est)||0), 0);
+  const mdUsed      = data.reduce((s,i) => s + (parseFloat(i.manday_used)||0), 0);
+  const overEst     = data.filter(i => parseFloat(i.manday_used) > parseFloat(i.manday_est) && parseFloat(i.manday_est) > 0).length;
+  return { total, active, waitConf, waitSendUAT, waitConfUAT, completed, cancel, mdEst, mdUsed, overEst };
+}
+
 function renderMetrics() {
-  const S = SUMMARY;
-  const mdEst  = S.mandayEst  || 0;
-  const mdUsed = S.mandayUsed || 0;
-  const mdPct  = mdEst > 0 ? Math.min(mdUsed / mdEst * 100, 100) : 0;
+  // ถ้าเลือกแผนก → คำนวณจาก data ที่ filter แล้ว, ถ้าไม่มี → ใช้ SUMMARY
+  let M;
+  if (activeDept) {
+    const deptData = DATA.filter(i => i.dept === activeDept);
+    M = calcMetrics(deptData);
+  } else {
+    const S = SUMMARY;
+    M = {
+      total:       S.total       || 0,
+      active:      S.active      || 0,
+      waitConf:    S.waitConfirmed   || 0,
+      waitSendUAT: S.waitingSendUAT  || 0,
+      waitConfUAT: S.waitingConfUAT  || 0,
+      completed:   S.completed   || 0,
+      cancel:      S.cancel      || 0,
+      mdEst:       S.mandayEst   || 0,
+      mdUsed:      S.mandayUsed  || 0,
+      overEst:     S.overEstimate|| 0,
+    };
+  }
+
+  const mdPct = M.mdEst > 0 ? Math.min(M.mdUsed / M.mdEst * 100, 100) : 0;
+  const deptLabel = activeDept ? `<span style="font-size:10px;background:#1a1a18;color:#fff;padding:2px 7px;border-radius:10px;margin-left:5px">${activeDept}</span>` : '';
 
   document.getElementById('metrics-area').innerHTML = `
-    <div class="metric" onclick="setChip('')"><div class="metric-label"><i class="ti ti-list-details" style="font-size:11px;margin-right:2px"></i>Issue ทั้งหมด</div><div class="metric-val mv-blue">${S.total||0}</div></div>
-    <div class="metric" onclick="setChip('ACTIVE')"><div class="metric-label"><i class="ti ti-loader" style="font-size:11px;margin-right:2px"></i>กำลังดำเนินการ</div><div class="metric-val mv-amber">${S.active||0}</div></div>
-    <div class="metric" onclick="setChip('Wait Confirmed')"><div class="metric-label"><i class="ti ti-clock-pause" style="font-size:11px;margin-right:2px"></i>Wait Confirmed</div><div class="metric-val mv-amber">${S.waitConfirmed||0}</div></div>
-    <div class="metric" onclick="setChip('Waiting Send UAT')"><div class="metric-label"><i class="ti ti-send" style="font-size:11px;margin-right:2px"></i>Waiting Send UAT</div><div class="metric-val mv-blue">${S.waitingSendUAT||0}</div></div>
-    <div class="metric" onclick="setChip('Waiting Confirm UAT')"><div class="metric-label"><i class="ti ti-check" style="font-size:11px;margin-right:2px"></i>Waiting Confirm UAT</div><div class="metric-val mv-purple">${S.waitingConfUAT||0}</div></div>
-    <div class="metric" onclick="setChip('Completed')"><div class="metric-label"><i class="ti ti-circle-check" style="font-size:11px;margin-right:2px"></i>Completed ทั้งคู่</div><div class="metric-val mv-green">${S.completed||0}</div></div>
-    <div class="metric" onclick="setChip('Cancel')"><div class="metric-label"><i class="ti ti-ban" style="font-size:11px;margin-right:2px"></i>Cancel</div><div class="metric-val mv-gray">${S.cancel||0}</div></div>
+    <div class="metric" onclick="setChip('');setDept('')" style="${activeDept?'border-color:#1a1a18':''}" title="${activeDept?'คลิกเพื่อล้าง filter':''}">
+      <div class="metric-label"><i class="ti ti-list-details" style="font-size:11px;margin-right:2px"></i>Issue ทั้งหมด${deptLabel}</div>
+      <div class="metric-val mv-blue">${M.total}</div>
+    </div>
+    <div class="metric" onclick="setChip('ACTIVE')">
+      <div class="metric-label"><i class="ti ti-loader" style="font-size:11px;margin-right:2px"></i>กำลังดำเนินการ</div>
+      <div class="metric-val mv-amber">${M.active}</div>
+    </div>
+    <div class="metric" onclick="setChip('Wait Confirmed')">
+      <div class="metric-label"><i class="ti ti-clock-pause" style="font-size:11px;margin-right:2px"></i>Wait Confirmed</div>
+      <div class="metric-val mv-amber">${M.waitConf}</div>
+    </div>
+    <div class="metric" onclick="setChip('Waiting Send UAT')">
+      <div class="metric-label"><i class="ti ti-send" style="font-size:11px;margin-right:2px"></i>Waiting Send UAT</div>
+      <div class="metric-val mv-blue">${M.waitSendUAT}</div>
+    </div>
+    <div class="metric" onclick="setChip('Waiting Confirm UAT')">
+      <div class="metric-label"><i class="ti ti-check" style="font-size:11px;margin-right:2px"></i>Waiting Confirm UAT</div>
+      <div class="metric-val mv-purple">${M.waitConfUAT}</div>
+    </div>
+    <div class="metric" onclick="setChip('Completed')">
+      <div class="metric-label"><i class="ti ti-circle-check" style="font-size:11px;margin-right:2px"></i>Completed ทั้งคู่</div>
+      <div class="metric-val mv-green">${M.completed}</div>
+    </div>
+    <div class="metric" onclick="setChip('Cancel')">
+      <div class="metric-label"><i class="ti ti-ban" style="font-size:11px;margin-right:2px"></i>Cancel</div>
+      <div class="metric-val mv-gray">${M.cancel}</div>
+    </div>
     <div class="manday-card">
-      <div style="font-size:11px;color:#888780;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-clock-hour-4" style="font-size:12px"></i>Manday Overview</div>
-      <div class="md-row"><span class="md-label">ประเมินรวม</span><div class="md-bar-wrap"><div class="md-bar-est" style="width:100%"></div></div><span class="md-val">${mdEst.toFixed(1)}</span></div>
-      <div class="md-row"><span class="md-label">ใช้ไปแล้ว</span><div class="md-bar-wrap"><div class="md-bar-used" style="width:${mdPct}%"></div></div><span class="md-val">${mdUsed.toFixed(1)}</span></div>
+      <div style="font-size:11px;color:#888780;margin-bottom:8px;display:flex;align-items:center;gap:5px"><i class="ti ti-clock-hour-4" style="font-size:12px"></i>Manday Overview${deptLabel}</div>
+      <div class="md-row"><span class="md-label">ประเมินรวม</span><div class="md-bar-wrap"><div class="md-bar-est" style="width:100%"></div></div><span class="md-val">${M.mdEst.toFixed(1)}</span></div>
+      <div class="md-row"><span class="md-label">ใช้ไปแล้ว</span><div class="md-bar-wrap"><div class="md-bar-used" style="width:${mdPct}%"></div></div><span class="md-val">${M.mdUsed.toFixed(1)}</span></div>
       <div style="display:flex;justify-content:space-between;margin-top:5px;font-size:11px;color:#888780">
         <span>ใช้ไป ${Math.round(mdPct)}% จากที่ประเมิน</span>
-        ${(S.overEstimate||0)>0?`<span style="color:#A32D2D"><i class="ti ti-alert-triangle" style="font-size:11px"></i> ${S.overEstimate} Issue เกิน estimate</span>`:`<span style="color:#3B6D11">ไม่มี Issue เกิน estimate</span>`}
+        ${M.overEst>0?`<span style="color:#A32D2D"><i class="ti ti-alert-triangle" style="font-size:11px"></i> ${M.overEst} Issue เกิน estimate</span>`:`<span style="color:#3B6D11">ไม่มี Issue เกิน estimate</span>`}
       </div>
     </div>`;
 }
@@ -800,14 +855,15 @@ function renderDeptChips() {
 let activeDept = '';
 function setDept(d) {
   activeDept = activeDept === d ? '' : d;
-  // sync filter dropdown
   const sel = document.getElementById('f-dept');
   if (sel) sel.value = activeDept;
+  renderMetrics();
+  renderChips();
   renderDeptChips();
   renderTable();
 }
 
-function setChip(v){ activeChip = activeChip === v ? '' : v; activeDept=''; if(document.getElementById('f-dept')) document.getElementById('f-dept').value=''; renderChips(); renderDeptChips(); renderTable(); }
+function setChip(v){ activeChip = activeChip === v ? '' : v; activeDept=''; if(document.getElementById('f-dept')) document.getElementById('f-dept').value=''; renderMetrics(); renderChips(); renderDeptChips(); renderTable(); }
 
 // ═══════════════════════════════════════════════════════════════════════
 // Table
